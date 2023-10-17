@@ -162,6 +162,40 @@ app.get('/api/searchMovieByKey', async (req, res) => {
     }
 });
 
+app.get('/api/getAvailableRegions', async (req, res) => {
+    const endpoint = `${process.env.TMDB_BASE_URL}/watch/providers/regions?api_key=${process.env.TMDB_API_KEY}`;
+    try {
+        const response = await axios.get(endpoint);
+        if(response && response.data && response.data.results) {
+            res.json({ message: response.data.results });
+            return;
+        } else {
+            res.json({ message:null });
+            return;
+        }
+    } catch (error) {
+        res.json({ message: null });
+        return;
+    }
+});
+
+app.get('/api/getMovieWatchProviders', async (req, res) => {
+    const endpoint = `${process.env.TMDB_BASE_URL}/movie/${req.query.movieId}/watch/providers?api_key=${process.env.TMDB_API_KEY}`;
+    try {
+        const response = await axios.get(endpoint);
+        if(response && response.data && response.data.results) {
+            res.json({ message: response.data.results });
+            return;
+        } else {
+            res.json({ message:null });
+            return;
+        }
+    } catch (error) {
+        res.json({ message: null });
+        return;
+    }
+});
+
 app.listen(process.env.PORT, () => {
     console.log(`Server is running on http://localhost:${process.env.PORT}`);
 });
