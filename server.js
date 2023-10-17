@@ -15,8 +15,6 @@ app.get('/api/getTorrentLink', async (req, res) => {
 
         const moviePageLink = $('td.name a:nth-child(2)').attr('href');
 
-        console.log('ddddddddd', moviePageLink);
-
         if (!moviePageLink) {
             res.json({ message: null });
             return;
@@ -132,6 +130,23 @@ app.get('/api/getTorrentsForMovie', async (req, res) => {
         const response = await axios.get(endpoint);
         if(response && response.data && response.data.data.movie) {
             res.json({ message: response.data.data.movie.torrents });
+            return;
+        } else {
+            res.json({ message:null });
+            return;
+        }
+    } catch (error) {
+        res.json({ message: null });
+        return;
+    }
+});
+
+app.get('/api/searchMovieByKey', async (req, res) => {
+    const endpoint = `${process.env.TMDB_BASE_URL}/search/movie?api_key=${process.env.TMDB_API_KEY}&query=${req.query.key}`;
+    try {
+        const response = await axios.get(endpoint);
+        if(response && response.data && response.data.results) {
+            res.json({ message: response.data.results });
             return;
         } else {
             res.json({ message:null });
