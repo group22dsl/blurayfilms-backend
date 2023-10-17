@@ -68,9 +68,13 @@ app.get('/api/getSubtitles', async (req, res) => {
     }
 });
 
-app.get('/api/gePopularMovies', async (req, res) => {
+app.get('/api/getMoviesListByType', async (req, res) => {
     try {
-        const searchUrl = `${process.env.TMDB_BASE_URL}/discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=popularity.desc&api_key=${process.env.TMDB_API_KEY}`;
+        if(req.query.searchType == '') {
+            req.query.searchType = 'popular';
+        }
+        let searchUrl = `${process.env.TMDB_BASE_URL}/movie/${req.query.searchType}?api_key=${process.env.TMDB_API_KEY}`;
+        
         const { data } = await axios.get(searchUrl);
         if (data){
             res.json({ message: data });
