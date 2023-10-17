@@ -12,5 +12,5 @@ npm install
 ```
 
 ```bash
-node server.js;
+node server.js
 ```
