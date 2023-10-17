@@ -126,6 +126,23 @@ app.get('/api/getMovieTrailer', async (req, res) => {
     }
 });
 
+app.get('/api/getTorrentsForMovie', async (req, res) => {
+    const endpoint = `${process.env.YTS_BASE_URL}/movie_details.json?imdb_id=${req.query.movieId}`;
+    try {
+        const response = await axios.get(endpoint);
+        if(response && response.data && response.data.data.movie) {
+            res.json({ message: response.data.data.movie.torrents });
+            return;
+        } else {
+            res.json({ message:null });
+            return;
+        }
+    } catch (error) {
+        res.json({ message: null });
+        return;
+    }
+});
+
 app.listen(process.env.PORT, () => {
     console.log(`Server is running on http://localhost:${process.env.PORT}`);
 });
