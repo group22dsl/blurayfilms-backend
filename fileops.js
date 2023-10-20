@@ -23,10 +23,16 @@ async function uploadFile(
         const returnFilePath = filePath;
 
         const bucket = storage.bucket(bucketName);
-        const standardFileName = getStandardCloudFileName(fileId,destFileName);
+        const standardFileName = getStandardCloudFileName(fileId, destFileName);
         const tempFile = `./tmp/${standardFileName}`;
         await download(filePath, tempFile);
         let file = bucket.file(standardFileName);
+        var ext = path.extname(destFileName);
+        const metadata = {
+            metadata: {
+                extension: ext
+            }
+        };
         const fileExists = await file.exists();
         if (!fileExists[0]) {
             const options = {
@@ -34,7 +40,9 @@ async function uploadFile(
                 preconditionOpts: { ifGenerationMatch: generationMatchPrecondition },
             };
             //TODO: set file extension as metadata
-            file = (await bucket.upload(tempFile, options)).file;
+            await bucket.upload(tempFile, options);
+            file.setMetadata(metadata);
+
         }
         fs.unlinkSync(tempFile);
         return getCloudFileUrl(fileId);
@@ -44,11 +52,11 @@ async function uploadFile(
     uploadFile().catch(console.error);
 }
 
-function getStandardCloudFileName(fileID, fileName=null){
+function getStandardCloudFileName(fileID, fileName = null) {
     return `${fileID}`;
 }
 
-async function getCloudFileUrlIfExists(fileID, fileName){
+async function getCloudFileUrlIfExists(fileID, fileName) {
     const storage = new Storage({ keyFilename: './application_default_credentials.json' });
     const bucket = storage.bucket(bucketName);
     const file = bucket.file(getStandardCloudFileName(fileID, fileName));
@@ -79,7 +87,6 @@ async function getCloudFileUrl(fileID) {
             return null;
         }
         return url;
-        console.log("Url is : " + url);
     });
 }
 

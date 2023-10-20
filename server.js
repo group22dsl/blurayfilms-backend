@@ -109,7 +109,7 @@ app.get('/api/getSubtitleDownloadLinkForFile', async (req, res) => {
                 "ts": 1697798539
             };
             if (response_data_data) {
-                const fileDownloadUrl = fileOperations.uploadFile(fileID, response_data_data.link,response_data_data.file_name) ;
+                const fileDownloadUrl = fileOperations.uploadFile(fileID, response_data_data.link,response_data_data.file_name);
                 res.json({ message: fileDownloadUrl });
                 return;
             } else {
@@ -118,7 +118,7 @@ app.get('/api/getSubtitleDownloadLinkForFile', async (req, res) => {
             }
         } catch (error) {
             console.log(error);
-            res.json({ message: 'bimal' });
+            res.json({ message: null });
             return;
         }
     }
