@@ -14,13 +14,9 @@ async function uploadFile(
     destFileName,
     generationMatchPrecondition = 0
 ) {
-
-    // Creates a client
     const storage = new Storage({ keyFilename: './application_default_credentials.json' });
 
     async function uploadFile() {
-
-        const returnFilePath = filePath;
 
         const bucket = storage.bucket(bucketName);
         const standardFileName = getStandardCloudFileName(fileId, destFileName);
@@ -62,16 +58,31 @@ async function getCloudFileUrlIfExists(fileID, fileName) {
     const file = bucket.file(getStandardCloudFileName(fileID, fileName));
     const fileExists = await file.exists();
     if (fileExists[0]) {
-        return getCloudFileUrl(fileID);
+        return getCloudFileUrl(fileID, fileName);
     }
     return null;
 }
 
-async function getCloudFileUrl(fileID) {
+async function generateSignedUrl(fileID, fileName) {
+    try {
+        const config = {
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 1000 * 60 * 60, // valid for one hour
+        }
+    const storage = new Storage({ keyFilename: './application_default_credentials.json' });
+      const [url] = await storage.bucket(bucketName).file(getStandardCloudFileName(fileID, fileName)).getSignedUrl(config);
+      return url;
+    } catch (err) {
+      return null;
+    }
+  }
+
+async function getCloudFileUrl(fileID, fileName) {
     const config = {
         version: 'v4',
         action: 'read',
-        expires: Date.now() + 1000 * 60 * 60, // valid for one hour
+        expires: Date.now() + 1000 * 60 * 60,
     }
 
     const storage = new Storage({ keyFilename: './application_default_credentials.json' });
@@ -79,15 +90,14 @@ async function getCloudFileUrl(fileID) {
     const file = bucket.file(getStandardCloudFileName(fileID));
     const fileExists = await file.exists();
     if (fileExists[0]) {
-        console.log("file exists");
+        
     }
-    file.getSignedUrl(config, function (err, url) {
-        if (err) {
-            console.error(err);
-            return null;
-        }
-        return url;
-    });
+      generateSignedUrl(fileID, fileName)
+        .then((url) => {
+          if (url) {
+          } else {
+          }
+        });
 }
 
 async function download(url, filePath) {
