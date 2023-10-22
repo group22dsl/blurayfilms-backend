@@ -37,11 +37,9 @@ async function uploadFile(
                 preconditionOpts: { ifGenerationMatch: generationMatchPrecondition },
             };
             const fileUploadResponse = await bucket.upload(tempFile, options);
-            // need to wait and get the file object 
-            console.log(JSON.stringify(fileUploadResponse[0]));
             fs.unlinkSync(tempFile);
             const uploadedFile = fileUploadResponse[0];
-            uploadedFile.setMetadata(metadata);
+            await uploadedFile.setMetadata(metadata);
             return await generateSignedUrl(uploadedFile)
             .then((url) => {
                 if (url) {
