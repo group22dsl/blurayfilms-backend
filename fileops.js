@@ -6,7 +6,7 @@ const axios = require('axios');
 const path = require('path')
 
 
-const bucketName = 'bluraymoviesubtitles';
+const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET_NAME;
 
 async function uploadFile(
     fileId,
@@ -19,85 +19,89 @@ async function uploadFile(
     async function uploadFile() {
 
         const bucket = storage.bucket(bucketName);
-        const standardFileName = getStandardCloudFileName(fileId, destFileName);
-        const tempFile = `./tmp/${standardFileName}`;
-        await download(filePath, tempFile);
-        let file = bucket.file(standardFileName);
         var ext = path.extname(destFileName);
+        const standardFileName = getStandardCloudFileName(fileId, destFileName);
+        const tempFile = `./tmp/${standardFileName}${ext}`;
+        await download(filePath, tempFile);
+
+        let destFile = bucket.file(`${standardFileName}${ext}`);
         const metadata = {
             metadata: {
                 extension: ext
             }
         };
-        const fileExists = await file.exists();
+        const fileExists = await destFile.exists();
         if (!fileExists[0]) {
             const options = {
-                destination: standardFileName,
+                destination: `${standardFileName}${ext}`,
                 preconditionOpts: { ifGenerationMatch: generationMatchPrecondition },
             };
-            //TODO: set file extension as metadata
-            await bucket.upload(tempFile, options);
-            file.setMetadata(metadata);
-
+            const fileUploadResponse = await bucket.upload(tempFile, options);
+            // need to wait and get the file object 
+            console.log(JSON.stringify(fileUploadResponse[0]));
+            fs.unlinkSync(tempFile);
+            const uploadedFile = fileUploadResponse[0];
+            uploadedFile.setMetadata(metadata);
+            return await generateSignedUrl(uploadedFile)
+            .then((url) => {
+                if (url) {
+                    return url;
+                } else {
+                    return null;
+                }
+            });
         }
-        fs.unlinkSync(tempFile);
-        return getCloudFileUrl(fileId);
 
+        // This can happen in an unlikely scenario where multiple people requested to dowload the same file for at the same time for the first time
+        return null;
     }
 
     uploadFile().catch(console.error);
 }
 
 function getStandardCloudFileName(fileID, fileName = null) {
+    //for now we just return the fileID as standard file name. Might flesh out a proper way to manage this later
     return `${fileID}`;
 }
 
 async function getCloudFileUrlIfExists(fileID, fileName) {
-    const storage = new Storage({ keyFilename: './application_default_credentials.json' });
-    const bucket = storage.bucket(bucketName);
-    const file = bucket.file(getStandardCloudFileName(fileID, fileName));
-    const fileExists = await file.exists();
-    if (fileExists[0]) {
-        return getCloudFileUrl(fileID, fileName);
+    try {
+        const storage = new Storage({ keyFilename: './application_default_credentials.json' });
+        const bucket = storage.bucket(bucketName);
+        const file = bucket.file(getStandardCloudFileName(fileID, fileName));
+        const [fileExists] = await bucket.getFiles({ prefix: fileID });
+        if (fileExists && fileExists[0]) {
+            const generatedUrl = await generateSignedUrl(fileExists[0])
+                .then((url) => {
+                    if (url) {
+                        return url;
+                    } else {
+                        return null;
+                    }
+                });
+            return generatedUrl;
+        }
     }
+    catch (err) {
+        console.log(err);
+    }
+
     return null;
 }
 
-async function generateSignedUrl(fileID, fileName) {
+async function generateSignedUrl(objFile) {
     try {
         const config = {
             version: 'v4',
             action: 'read',
             expires: Date.now() + 1000 * 60 * 60, // valid for one hour
         }
-    const storage = new Storage({ keyFilename: './application_default_credentials.json' });
-      const [url] = await storage.bucket(bucketName).file(getStandardCloudFileName(fileID, fileName)).getSignedUrl(config);
-      return url;
+        const [url] = await objFile.getSignedUrl(config);
+        return url;
     } catch (err) {
-      return null;
+        console.log(err)
+        return null;
     }
-  }
-
-async function getCloudFileUrl(fileID, fileName) {
-    const config = {
-        version: 'v4',
-        action: 'read',
-        expires: Date.now() + 1000 * 60 * 60,
-    }
-
-    const storage = new Storage({ keyFilename: './application_default_credentials.json' });
-    const bucket = storage.bucket(bucketName);
-    const file = bucket.file(getStandardCloudFileName(fileID));
-    const fileExists = await file.exists();
-    if (fileExists[0]) {
-        
-    }
-      generateSignedUrl(fileID, fileName)
-        .then((url) => {
-          if (url) {
-          } else {
-          }
-        });
 }
 
 async function download(url, filePath) {

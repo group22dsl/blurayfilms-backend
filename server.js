@@ -69,7 +69,6 @@ app.get('/api/getSubtitles', async (req, res) => {
 });
 
 app.get('/api/getSubtitleDownloadLinkForFile', async (req, res) => {
-
     const fileOperations = require('./fileops');
     let cloudFileUrl = '';
     try {
@@ -101,11 +100,8 @@ app.get('/api/getSubtitleDownloadLinkForFile', async (req, res) => {
                 "username": process.env.OPEN_SUBTITLE_USERNAME,
                 "password": process.env.OPEN_SUBTITLE_PASSWORD
             };
-
             const loggedInResponse = await axios.post(url, data, { headers });
-
             if (loggedInResponse) {
-
                 const url = `${process.env.OPEN_SUBTITLE_BASE_URL}/download`;
                 const headers = {
                 'Accept': 'application/json',
@@ -120,7 +116,6 @@ app.get('/api/getSubtitleDownloadLinkForFile', async (req, res) => {
 
                 const downloadResponse = await axios.post(url, data, { headers });
                 if (downloadResponse && downloadResponse.data) {
-                    console.log('ddddd', downloadResponse.data);
                     const fileDownloadUrl = await fileOperations.uploadFile(req.query.fileID, downloadResponse.data.link, downloadResponse.data.file_name);
                     res.json({ message: fileDownloadUrl });
                     return;
