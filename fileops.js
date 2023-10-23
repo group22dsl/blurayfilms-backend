@@ -15,32 +15,28 @@ async function uploadFile(
     generationMatchPrecondition = 0
 ) {
     const storage = new Storage({ keyFilename: './application_default_credentials.json' });
-
-    async function uploadFile() {
-
-        const bucket = storage.bucket(bucketName);
-        var ext = path.extname(destFileName);
-        const standardFileName = getStandardCloudFileName(fileId, destFileName);
-        const tempFile = `./tmp/${standardFileName}${ext}`;
-        await download(filePath, tempFile);
-
-        let destFile = bucket.file(`${standardFileName}${ext}`);
-        const metadata = {
-            metadata: {
-                extension: ext
-            }
+    const bucket = storage.bucket(bucketName);
+    var ext = path.extname(destFileName);
+    const standardFileName = getStandardCloudFileName(fileId, destFileName);
+    const tempFile = `./tmp/${standardFileName}${ext}`;
+    const abc = await download(filePath, tempFile);
+    let destFile = bucket.file(`${standardFileName}${ext}`);
+    const metadata = {
+        metadata: {
+            extension: ext
+        }
+    };
+    const fileExists = await destFile.exists();
+    if (!fileExists[0]) {
+        const options = {
+            destination: `${standardFileName}${ext}`,
+            preconditionOpts: { ifGenerationMatch: generationMatchPrecondition },
         };
-        const fileExists = await destFile.exists();
-        if (!fileExists[0]) {
-            const options = {
-                destination: `${standardFileName}${ext}`,
-                preconditionOpts: { ifGenerationMatch: generationMatchPrecondition },
-            };
-            const fileUploadResponse = await bucket.upload(tempFile, options);
-            fs.unlinkSync(tempFile);
-            const uploadedFile = fileUploadResponse[0];
-            await uploadedFile.setMetadata(metadata);
-            return await generateSignedUrl(uploadedFile)
+        const fileUploadResponse = await bucket.upload(tempFile, options);
+        fs.unlinkSync(tempFile);
+        const uploadedFile = fileUploadResponse[0];
+        await uploadedFile.setMetadata(metadata);
+        return await generateSignedUrl(uploadedFile)
             .then((url) => {
                 if (url) {
                     return url;
@@ -48,13 +44,9 @@ async function uploadFile(
                     return null;
                 }
             });
-        }
-
-        // This can happen in an unlikely scenario where multiple people requested to dowload the same file for at the same time for the first time
-        return null;
     }
-
-    uploadFile().catch(console.error);
+    // This can happen in an unlikely scenario where multiple people requested to dowload the same file at the same time for the first time
+    return null;
 }
 
 function getStandardCloudFileName(fileID, fileName = null) {
