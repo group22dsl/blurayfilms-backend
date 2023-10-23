@@ -9,6 +9,7 @@ const path = require('path')
 const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET_NAME;
 
 async function uploadFile(
+    movieId,
     fileId,
     filePath,
     destFileName,
@@ -17,7 +18,7 @@ async function uploadFile(
     const storage = new Storage({ keyFilename: './application_default_credentials.json' });
     const bucket = storage.bucket(bucketName);
     var ext = path.extname(destFileName);
-    const standardFileName = getStandardCloudFileName(fileId, destFileName);
+    const standardFileName = getStandardCloudFileName(movieId,fileId, destFileName);
     const tempFile = `./tmp/${standardFileName}${ext}`;
     const abc = await download(filePath, tempFile);
     let destFile = bucket.file(`${standardFileName}${ext}`);
@@ -49,17 +50,17 @@ async function uploadFile(
     return null;
 }
 
-function getStandardCloudFileName(fileID, fileName = null) {
+function getStandardCloudFileName(movieID, fileID, fileName = null) {
     //for now we just return the fileID as standard file name. Might flesh out a proper way to manage this later
-    return `${fileID}`;
+    return `${movieID}_${fileID}`;
 }
 
-async function getCloudFileUrlIfExists(fileID, fileName) {
+async function getCloudFileUrlIfExists(movieID, fileID, fileName) {
     try {
         const storage = new Storage({ keyFilename: './application_default_credentials.json' });
         const bucket = storage.bucket(bucketName);
-        const file = bucket.file(getStandardCloudFileName(fileID, fileName));
-        const [fileExists] = await bucket.getFiles({ prefix: fileID });
+        const filePrefix = getStandardCloudFileName(movieID, fileID, fileName);
+        const [fileExists] = await bucket.getFiles({ prefix: filePrefix });
         if (fileExists && fileExists[0]) {
             const generatedUrl = await generateSignedUrl(fileExists[0])
                 .then((url) => {

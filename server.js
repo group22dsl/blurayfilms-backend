@@ -73,7 +73,8 @@ app.get('/api/getSubtitleDownloadLinkForFile', async (req, res) => {
     let cloudFileUrl = '';
     try {
         const fileID = req.query.fileID;
-        cloudFileUrl = await fileOperations.getCloudFileUrlIfExists(fileID);
+        const movieID = req.query.movieID;
+        cloudFileUrl = await fileOperations.getCloudFileUrlIfExists(movieID, fileID);
     } catch (error) {
         res.json({ message: null });
         return;
@@ -116,7 +117,7 @@ app.get('/api/getSubtitleDownloadLinkForFile', async (req, res) => {
 
                 const downloadResponse = await axios.post(url, data, { headers });
                 if (downloadResponse && downloadResponse.data) {
-                    const fileDownloadUrl = await fileOperations.uploadFile(req.query.fileID, downloadResponse.data.link, downloadResponse.data.file_name);
+                    const fileDownloadUrl = await fileOperations.uploadFile(req.query.movieID, req.query.fileID, downloadResponse.data.link, downloadResponse.data.file_name);
                     res.json({ message: fileDownloadUrl });
                     return;
                 } else {
