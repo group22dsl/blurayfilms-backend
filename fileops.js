@@ -1,9 +1,8 @@
-const http = require('http');
-const https = require('https');
 const fs = require('fs');
 const { Storage } = require('@google-cloud/storage');
 const axios = require('axios');
 const path = require('path')
+const request = require('request');
 
 
 const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET_NAME;
@@ -15,13 +14,13 @@ async function uploadFile(
     destFileName,
     generationMatchPrecondition = 0
 ) {
+
     const storage = new Storage({ keyFilename: './application_default_credentials.json' });
     const bucket = storage.bucket(bucketName);
     var ext = path.extname(destFileName);
     const standardFileName = getStandardCloudFileName(movieId,fileId, destFileName);
-    const tempFile = `./tmp/${standardFileName}${ext}`;
-    const abc = await download(filePath, tempFile);
     let destFile = bucket.file(`${standardFileName}${ext}`);
+    const tempFile = `./tmp/dummyfile`;
     const metadata = {
         metadata: {
             extension: ext
@@ -29,15 +28,26 @@ async function uploadFile(
     };
     const fileExists = await destFile.exists();
     if (!fileExists[0]) {
-        const options = {
-            destination: `${standardFileName}${ext}`,
-            preconditionOpts: { ifGenerationMatch: generationMatchPrecondition },
+        const uploadblob = (url, file) => {
+            return new Promise((resolve, reject) => {
+                request.head(url, (err, res, body) => {
+                    request(url)
+                        .pipe(file.createWriteStream())
+                        .on('close', () => {
+                            resolve();
+                        })
+                        .on('error', (err) => {
+                            reject(err);
+                        });
+                });
+            });
         };
-        const fileUploadResponse = await bucket.upload(tempFile, options);
-        fs.unlinkSync(tempFile);
-        const uploadedFile = fileUploadResponse[0];
-        await uploadedFile.setMetadata(metadata);
-        return await generateSignedUrl(uploadedFile)
+
+        const url = filePath;
+        await uploadblob(url, destFile);
+        await destFile.setMetadata(metadata);
+
+        const blobUrl = await generateSignedUrl(destFile)
             .then((url) => {
                 if (url) {
                     return url;
@@ -45,6 +55,8 @@ async function uploadFile(
                     return null;
                 }
             });
+        
+        return blobUrl;
     }
     // This can happen in an unlikely scenario where multiple people requested to dowload the same file at the same time for the first time
     return null;
@@ -93,40 +105,6 @@ async function generateSignedUrl(objFile) {
         console.log(err)
         return null;
     }
-}
-
-async function download(url, filePath) {
-    const proto = !url.charAt(4).localeCompare('s') ? https : http;
-    return new Promise((resolve, reject) => {
-        const file = fs.createWriteStream(filePath);
-        let fileInfo = null;
-
-        const request = proto.get(url, response => {
-            if (response.statusCode !== 200) {
-                fs.unlink(filePath, () => {
-                    reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
-                });
-                return;
-            }
-
-            fileInfo = {
-                mime: response.headers['content-type'],
-                size: parseInt(response.headers['content-length'], 10),
-            };
-
-            response.pipe(file);
-        });
-
-        file.on('finish', () => resolve(fileInfo));
-        request.on('error', err => {
-            fs.unlink(filePath, () => reject(err));
-        });
-        file.on('error', err => {
-            fs.unlink(filePath, () => reject(err));
-        });
-
-        request.end();
-    });
 }
 
 module.exports = { uploadFile, getCloudFileUrlIfExists };
