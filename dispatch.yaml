@@ -1,0 +1,5 @@
+dispatch:
+  - url: api.ikmovies.com/*
+    service: ikmovies-be
+  - url: ikmovies.com/*
+    service: ikmovies-fe
