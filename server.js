@@ -137,8 +137,7 @@ app.get('/api/getMoviesListByType', async (req, res) => {
         if(req.query.searchType == '') {
             req.query.searchType = 'popular';
         }
-        let searchUrl = `${process.env.TMDB_BASE_URL}/movie/${req.query.searchType}?api_key=${process.env.TMDB_API_KEY}`;
-        
+        let searchUrl = `${process.env.TMDB_BASE_URL}/movie/${req.query.searchType}?api_key=${process.env.TMDB_API_KEY}&page=${req.query.page}`;
         const { data } = await axios.get(searchUrl);
         if (data){
             res.json({ message: data });
