@@ -109,7 +109,6 @@ async function generateSignedUrl(objFile) {
 }
 
 async function generateSitemapXML() {
-    console.log("hello 1");
     const dySitemap = require('dynamic-sitemap');
     const list = [
         {
@@ -132,22 +131,15 @@ async function generateSitemapXML() {
         }
     ]
     const xml = dySitemap.build(list);
-    console.log(xml);
     const storage = new Storage({ keyFilename: './application_default_credentials.json' });
-    console.log("hello 2");
     const bucket = storage.bucket(bucketNameFiles);
-    console.log("hello 3");
     const [fileExists] = await bucket.getFiles({ prefix: 'sitemap' });
-    console.log("hello 4");
     if (fileExists && fileExists[0]) {
         let siteMapFile = fileExists[0];
         const writeStream = siteMapFile.createWriteStream();
-        console.log("hello 5");
         writeStream.write(xml);
-        console.log("hello 6");
         await writeStream.end();
-        console.log("hello 7");
-        console.log('Successfully wrote text to file.');
+        console.log('Successfully uploaded latest sitemap');
         
     }
 
