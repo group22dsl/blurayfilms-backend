@@ -260,6 +260,19 @@ app.get('/api/getMovieWatchProviders', async (req, res) => {
     }
 });
 
+app.post('/api/generateSiteMap', async (req, res) => {
+    const fileOperations = require('./fileops');
+    try {
+         fileOperations.generateSitemapXML();
+         res.json({ message: "done" });
+    } catch (error) {
+        res.json({ message: null });
+    }
+
+    return;
+
+});
+
 app.listen(process.env.PORT, () => {
     console.log(`Server is running on http://localhost:${process.env.PORT}`);
 });
