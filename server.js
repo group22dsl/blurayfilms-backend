@@ -213,7 +213,7 @@ app.get('/api/searchMovieByKey', async (req, res) => {
     try {
         const response = await axios.get(endpoint);
         if(response && response.data && response.data.results) {
-            res.json({ message: response.data.results });
+            res.json({ message: response.data });
             return;
         } else {
             res.json({ message:null });
