@@ -4,6 +4,12 @@ const axios = require('axios');
 const path = require('path')
 const request = require('request');
 
+const express = require('express');
+const cors = require('cors');
+const app = express();
+app.use(cors());
+require('dotenv').config();
+
 
 const bucketNameSubtitles = process.env.GOOGLE_CLOUD_STORAGE_BUCKET_NAME_SUBTITLES;
 const bucketNameFiles = process.env.GOOGLE_CLOUD_STORAGE_BUCKET_NAME_FILES;
@@ -146,4 +152,41 @@ async function generateSitemapXML() {
     return;
 }
 
-module.exports = { uploadFile, getCloudFileUrlIfExists, generateSitemapXML };
+async function generateSitemap(){
+    const { SitemapStream, streamToPromise } = require( 'sitemap' );
+    const { Readable } = require( 'stream' );
+
+    const links = [{ url: '/',  changefreq: 'daily', priority: 0.3  }];
+    const stream = new SitemapStream( { hostname: 'https://ikmovies.com' } );
+
+    let searchUrl = `${process.env.TMDB_BASE_URL}/movie/now_playing?api_key=${process.env.TMDB_API_KEY}&page=1`;
+    let { data } = await axios.get(searchUrl);
+    console.log(data);
+    const numberOfPages = data.total_pages;
+    data.results.forEach(movie => {
+        links.push({ url: `/movie/${movie.id}/${movie.title}`,  changefreq: 'monthly', priority: 0.3  }) 
+     });
+
+    for (let i = 2; i <= numberOfPages; i++) {
+        let searchUrlPage = `${process.env.TMDB_BASE_URL}/movie/now_playing?api_key=${process.env.TMDB_API_KEY}&page=${i}`;
+        console.log(searchUrlPage);
+        let { data: movieData } = await axios.get(searchUrlPage);
+        movieData.results.forEach(movie => {
+            links.push({ url: `/movie/${movie.id}/${movie.title}`,  changefreq: 'monthly', priority: 0.3  }) 
+         });
+    } 
+
+    // Return a promise that resolves with your XML string
+    streamToPromise(Readable.from(links).pipe(stream)).then((data) => {
+        const fs = require('fs');
+        const xml = data.toString();
+        fs.writeFile("./sitemaps/sitemap.xml", xml, function(err) {
+            if(err) {
+                return console.log(err);
+            }
+            console.log("The sitemap was saved!");
+        });
+    });
+}
+
+module.exports = { uploadFile, getCloudFileUrlIfExists, generateSitemapXML,generateSitemap };

@@ -262,7 +262,8 @@ app.get('/api/getMovieWatchProviders', async (req, res) => {
 app.post('/api/generateSiteMap', async (req, res) => {
     const fileOperations = require('./fileops');
     try {
-         fileOperations.generateSitemapXML();
+         //fileOperations.generateSitemapXML();
+         fileOperations.generateSitemap();
          res.json({ message: "done" });
     } catch (error) {
         res.json({ message: null });
